@@ -7,7 +7,9 @@ tab, this:
   the session **creates or updates** opens as a browser tab **to the right of the
   terminal, in the same pane** (not a split). Also restored **on session resume**.
 - **shows a compact artifact pill** in the cmux sidebar — e.g. `2 PR ✓ · 1 issue`, colored
-  by CI state (green pass / amber running / red fail).
+  by CI state (green pass / amber running / red fail). **Tracking is tied to tabs**: the
+  pill reflects exactly the artifact tabs you currently have open — close a tab and it
+  leaves the pill; open one (or any PR you open yourself) and it joins.
 
 It reuses [`copilot-pr-footer`](https://github.com/kamil-gwozdz/copilot-pr-footer) for
 artifact detection and live `gh` PR state (same `events.jsonl` parsing and state cache as
@@ -35,17 +37,25 @@ those). Then open a **new** Copilot CLI session in a cmux tab.
 
 ## Behaviour
 
+Two layers — **auto-open** (which tabs to open) and **the pill** (what's tracked, tied to
+open tabs):
+
 | Trigger | What happens |
 |---|---|
-| A PR/issue/gist is **created** or **updated** in the session | it opens once as a browser tab to the right (same pane) |
+| A PR/issue/gist is **created** or **updated** in the session | it opens once as a browser tab to the right (same pane), and joins the pill |
 | The same artifact is updated again | no duplicate tab |
-| You **close** an artifact tab | it stays closed (not reopened) |
-| You **resume** the session (cmux relaunched) | missing artifact tabs are reopened |
-| Any artifacts exist | the sidebar pill shows the count + CI state |
+| You **close** an artifact tab | it leaves the pill (no longer tracked) and is not reopened |
+| You **reopen** that tab, or open **any** PR/issue/gist tab yourself | it joins the pill |
+| You **resume** the session (cmux relaunched) | the session's artifact tabs are reopened |
 
-Tabs open **without** stealing focus. Each artifact opens at most once per session (tracked
-in `~/.config/occs/opened/<session>.json`); resume reopens only tabs that aren't already
-present.
+The pill counts the artifact tabs **currently open in the workspace** (deduped, tolerant of
+in-tab navigation like `/pull/123/files`). It refreshes on the next agent activity
+(`SessionStart`, `PostToolUse`, `Stop`) — so a close/open shows up on the next tool call or
+turn end, not instantly.
+
+Tabs open **without** stealing focus. Each artifact auto-opens at most once per session
+(remembered in `~/.config/occs/opened/<session>.json`) so a tab you close isn't reopened on
+the next tick; resume reopens tabs that aren't already present.
 
 ## Commands
 

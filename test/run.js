@@ -13,6 +13,30 @@ const prevHome = process.env.HOME, prevUP = process.env.USERPROFILE;
 process.env.HOME = HOME; process.env.USERPROFILE = HOME;
 const cmux = require("../lib/cmux");
 
+console.log("artifactFromUrl (classify + canonicalize):");
+{
+  ok("classifies a PR url", (() => { const a = cmux.artifactFromUrl("https://github.com/o/r/pull/12"); return a && a.kind === "pr" && a.url === "https://github.com/o/r/pull/12"; })());
+  ok("canonicalizes a navigated PR tab (/files) back to the PR",
+     cmux.artifactFromUrl("https://github.com/o/r/pull/12/files?w=1").url === "https://github.com/o/r/pull/12");
+  ok("classifies an issue url", cmux.artifactFromUrl("https://github.com/o/r/issues/9").kind === "issue");
+  ok("classifies a gist url", cmux.artifactFromUrl("https://gist.github.com/me/0426cb4d88b5bf11").kind === "gist");
+  ok("classifies a codespace url", cmux.artifactFromUrl("https://github.com/codespaces/curly-fortnight").kind === "codespace");
+  ok("non-artifact url -> null", cmux.artifactFromUrl("https://github.com/o/r") === null && cmux.artifactFromUrl("https://example.com") === null);
+}
+
+console.log("classifyTabs (tab-driven tracking set):");
+{
+  const tabs = [
+    "https://github.com/o/r/pull/1/files",   // navigated PR
+    "https://github.com/o/r/pull/1",          // same PR, base -> dedup
+    "https://github.com/o/r/issues/2",
+    "https://example.com/not-an-artifact",
+  ];
+  const arts = cmux.classifyTabs(tabs);
+  ok("dedupes the same PR opened at two paths", arts.filter((a) => a.kind === "pr").length === 1);
+  ok("includes the issue, drops the non-artifact", arts.some((a) => a.kind === "issue") && arts.length === 2);
+}
+
 console.log("urlsToOpen (dedup logic):");
 {
   const urls = ["https://x/pull/1", "https://x/pull/2", "https://x/issues/3"];
