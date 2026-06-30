@@ -98,18 +98,54 @@ console.log("nextWorkspaceTitle (tab-follow, cmux-reset re-assert, manual wins):
 
 console.log("pillText:");
 {
-  const states = { "https://x/pull/1": { ci: "passed" }, "https://x/pull/2": { ci: "passed" } };
-  const p = cmux.pillText([
-    { kind: "pr", url: "https://x/pull/1" }, { kind: "pr", url: "https://x/pull/2" },
-    { kind: "issue", url: "https://x/issues/3" },
-  ], states);
-  ok("summarizes PRs + issues with all-green CI tick",
-     p.text === "2 PR \u2713 \u00b7 1 issue" && p.color === "#3fb950");
-  const f = cmux.pillText([{ kind: "pr", url: "https://x/pull/1" }], { "https://x/pull/1": { ci: "failed" } });
-  ok("a failing PR turns the pill red with \u2717", f.text === "1 PR \u2717" && f.color === "#f85149");
-  const r = cmux.pillText([{ kind: "pr", url: "https://x/pull/1" }], { "https://x/pull/1": { ci: "running" } });
-  ok("a running PR is amber with \u2026", r.color === "#d29922" && r.text.endsWith("\u2026"));
+  const P = (s) => cmux.pillText([{ kind: "pr", url: "https://x/pull/1" }], { "https://x/pull/1": s });
+  ok("open + CI passed + approved -> green, ✓ appr", (() => {
+    const p = P({ state: "OPEN", ci: "passed", review: "APPROVED" });
+    return p.color === "#3fb950" && p.text === "1 PR \u2713 appr";
+  })());
+  ok("CI pending -> yellow, …", (() => {
+    const p = P({ state: "OPEN", ci: "running" });
+    return p.color === "#d29922" && p.text === "1 PR \u2026";
+  })());
+  ok("CI failed -> red, ✗", (() => {
+    const p = P({ state: "OPEN", ci: "failed" });
+    return p.color === "#f85149" && p.text === "1 PR \u2717";
+  })());
+  ok("merged -> violet, 'merged'", (() => {
+    const p = P({ state: "MERGED", ci: "none" });
+    return p.color === "#a371f7" && p.text === "1 PR merged";
+  })());
+  ok("merge conflict -> red, 'conflict' (only when CONFLICTING)", (() => {
+    const p = P({ state: "OPEN", ci: "passed", mergeable: "CONFLICTING" });
+    return p.color === "#f85149" && p.text.includes("conflict");
+  })());
+  ok("mergeable=MERGEABLE shows no conflict word", (() => {
+    const p = P({ state: "OPEN", ci: "passed", mergeable: "MERGEABLE" });
+    return !p.text.includes("conflict");
+  })());
+  ok("changes requested -> red, chg", (() => {
+    const p = P({ state: "OPEN", ci: "passed", review: "CHANGES_REQUESTED" });
+    return p.color === "#f85149" && p.text.includes("chg");
+  })());
+  ok("review required -> rev?", P({ state: "OPEN", ci: "passed", review: "REVIEW_REQUIRED" }).text.includes("rev?"));
+  ok("rolls up PRs + issues; all-green tick", (() => {
+    const p = cmux.pillText([
+      { kind: "pr", url: "https://x/pull/1" }, { kind: "pr", url: "https://x/pull/2" },
+      { kind: "issue", url: "https://x/issues/3" },
+    ], { "https://x/pull/1": { state: "OPEN", ci: "passed" }, "https://x/pull/2": { state: "OPEN", ci: "passed" } });
+    return p.text === "2 PR \u2713 \u00b7 1 issue" && p.color === "#3fb950";
+  })());
+  ok("worst CI wins the rollup (one failing among passing -> red ✗)", (() => {
+    const p = cmux.pillText([
+      { kind: "pr", url: "https://x/pull/1" }, { kind: "pr", url: "https://x/pull/2" },
+    ], { "https://x/pull/1": { state: "OPEN", ci: "passed" }, "https://x/pull/2": { state: "OPEN", ci: "failed" } });
+    return p.color === "#f85149" && p.text.startsWith("2 PR \u2717");
+  })());
   ok("no artifacts -> no pill", cmux.pillText([], {}) === null);
+  ok("issue-only -> neutral blue, no PR part", (() => {
+    const p = cmux.pillText([{ kind: "issue", url: "https://x/issues/9" }], {});
+    return p.text === "1 issue" && p.color === "#58a6ff";
+  })());
 }
 
 console.log("resolveSession:");

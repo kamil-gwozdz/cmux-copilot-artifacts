@@ -6,10 +6,26 @@ tab, this:
 - **opens the session's artifacts as browser tabs** — every PR / issue / gist / codespace
   the session **creates or updates** opens as a browser tab **to the right of the
   terminal, in the same pane** (not a split). Also restored **on session resume**.
-- **shows a compact artifact pill** in the cmux sidebar — e.g. `2 PR ✓ · 1 issue`, colored
-  by CI state (green pass / amber running / red fail). **Tracking is tied to tabs**: the
-  pill reflects exactly the artifact tabs you currently have open — close a tab and it
-  leaves the pill; open one (or any PR you open yourself) and it joins.
+- **shows a compact artifact pill** in the cmux sidebar — e.g. `1 PR ✓ appr`, with live CI,
+  review, and merge-conflict state. **Tracking is tied to tabs**: the pill reflects exactly
+  the artifact tabs you currently have open — close a tab and it leaves the pill; open one
+  (or any PR you open yourself) and it joins.
+
+### Pill colors & glyphs
+
+The pill rolls the tracked PRs into one entry:
+
+| Color | Meaning |
+|---|---|
+| 🟣 violet | all tracked PRs merged (`merged`) |
+| 🟢 green | open, CI passed |
+| 🟡 yellow | CI pending/running (`…`) |
+| 🔴 red | CI failed (`✗`), merge conflict (`conflict`), or changes requested (`chg`) |
+| 🔵 blue | neutral (no CI yet, or issues/gists only) |
+
+Glyphs: CI `✓ / … / ✗` · review `appr / chg / rev?` · `conflict` shown only when the PR is
+actually conflicting. Live PR state comes from `gh` (via the
+[`copilot-pr-footer`](https://github.com/kamil-gwozdz/copilot-pr-footer) cache).
 
 It reuses [`copilot-pr-footer`](https://github.com/kamil-gwozdz/copilot-pr-footer) for
 artifact detection and live `gh` PR state (same `events.jsonl` parsing and state cache as
