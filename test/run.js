@@ -54,7 +54,7 @@ console.log("urlsToOpen (dedup logic):");
      cmux.urlsToOpen(["https://x/pull/1"], new Set(), new Set(["https://x/pull/1"]), "SessionStart").length === 0);
 }
 
-console.log("workspaceTitleFromTree (space name <- first terminal tab):");
+console.log("workspaceTitles (extract cur + first terminal tab):");
 {
   const tree = { windows: [{ workspaces: [
     { id: "A", title: "Work", panes: [{ surfaces: [
@@ -64,13 +64,36 @@ console.log("workspaceTitleFromTree (space name <- first terminal tab):");
     ] }] },
     { id: "B", title: "B", panes: [] },
   ] }] };
-  ok("returns the first terminal tab's title for the target workspace",
-     cmux.workspaceTitleFromTree(tree, "A") === "Implement Cmux Custom Sidebar");
-  ok("null when already in sync",
-     cmux.workspaceTitleFromTree({ windows: [{ workspaces: [
-       { id: "A", title: "T", panes: [{ surfaces: [{ type: "terminal", title: "T" }] }] }] }] }, "A") === null);
-  ok("null when the workspace has no terminal title", cmux.workspaceTitleFromTree(tree, "B") === null);
-  ok("null when the workspace is absent / no tree", cmux.workspaceTitleFromTree(tree, "Z") === null && cmux.workspaceTitleFromTree(null, "A") === null);
+  const a = cmux.workspaceTitles(tree, "A");
+  ok("reads workspace title + first terminal tab", a.cur === "Work" && a.tab === "Implement Cmux Custom Sidebar");
+  const b = cmux.workspaceTitles(tree, "B");
+  ok("no terminal -> empty tab", b.cur === "B" && b.tab === "");
+  const z = cmux.workspaceTitles(null, "A");
+  ok("no tree -> empties", z.cur === "" && z.tab === "");
+}
+
+console.log("nextWorkspaceTitle (tab-follow, cmux-reset re-assert, manual wins):");
+{
+  // first sight on the cwd default -> take over with the tab title
+  let s = cmux.nextWorkspaceTitle({ cur: "Work", tab: "Sess A", base: "Work", ours: undefined, manual: undefined });
+  ok("default 'Work' -> renamed to tab title", s.rename === "Sess A" && s.ours === "Sess A" && s.manual === null);
+  // already in sync -> no rename
+  ok("in sync -> no rename", cmux.nextWorkspaceTitle({ cur: "Sess A", tab: "Sess A", base: "Work", ours: "Sess A", manual: null }).rename === null);
+  // tab title updated by Copilot -> follow it
+  s = cmux.nextWorkspaceTitle({ cur: "Sess A", tab: "Sess B", base: "Work", ours: "Sess A", manual: null });
+  ok("Copilot renamed the tab -> follow", s.rename === "Sess B" && s.ours === "Sess B");
+  // cmux reset the space back to 'Work' -> re-assert the tab title (not treated as manual)
+  s = cmux.nextWorkspaceTitle({ cur: "Work", tab: "Sess B", base: "Work", ours: "Sess B", manual: null });
+  ok("cmux reset to 'Work' -> re-assert tab", s.rename === "Sess B" && s.manual === null);
+  // user renames by hand -> becomes manual, wins
+  s = cmux.nextWorkspaceTitle({ cur: "My Name", tab: "Sess B", base: "Work", ours: "Sess B", manual: null });
+  ok("hand rename -> detected manual, no override", s.rename === null && s.manual === "My Name" && s.ours === "My Name");
+  // once manual, a new tab title is ignored
+  s = cmux.nextWorkspaceTitle({ cur: "My Name", tab: "Sess C", base: "Work", ours: "My Name", manual: "My Name" });
+  ok("manual ignores later tab changes", s.rename === null && s.manual === "My Name");
+  // once manual, cmux's 'Work' reset is corrected back to the manual name
+  s = cmux.nextWorkspaceTitle({ cur: "Work", tab: "Sess C", base: "Work", ours: "My Name", manual: "My Name" });
+  ok("manual re-asserted over cmux reset", s.rename === "My Name" && s.manual === "My Name");
 }
 
 console.log("pillText:");
