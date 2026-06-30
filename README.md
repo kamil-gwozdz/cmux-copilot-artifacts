@@ -1,4 +1,4 @@
-# opinionated-cmux-copilot-sidebar (`occs`)
+# cmux-copilot-artifacts (`occs`)
 
 GitHub Copilot CLI hooks for [cmux](https://cmux.com). When Copilot runs inside a cmux
 tab, this:
@@ -23,7 +23,7 @@ and never blocks Copilot.
 ## Install
 
 ```sh
-npm install -g opinionated-cmux-copilot-sidebar   # or: npm link from a checkout
+npm install -g cmux-copilot-artifacts   # or: npm link from a checkout
 occs install
 ```
 
@@ -63,7 +63,7 @@ Disable temporarily in a shell with `OCCS_HOOKS_DISABLED=1`.
 
 ```sh
 occs uninstall
-npm uninstall -g opinionated-cmux-copilot-sidebar
+npm uninstall -g cmux-copilot-artifacts
 ```
 
 ## License

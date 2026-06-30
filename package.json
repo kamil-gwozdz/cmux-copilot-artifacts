@@ -1,10 +1,10 @@
 {
-  "name": "opinionated-cmux-copilot-sidebar",
+  "name": "cmux-copilot-artifacts",
   "version": "0.1.0",
   "description": "Copilot CLI hooks for cmux: open the PRs/issues/gists your session creates/updates as browser tabs (to the right, same pane) on create/update/resume, plus a compact artifact pill in the cmux sidebar.",
   "bin": {
     "occs": "bin/cli.js",
-    "opinionated-cmux-copilot-sidebar": "bin/cli.js"
+    "cmux-copilot-artifacts": "bin/cli.js"
   },
   "files": [
     "bin/",
@@ -21,7 +21,7 @@
   },
   "keywords": [
     "cmux",
-    "sidebar",
+    "artifacts",
     "github",
     "copilot",
     "copilot-cli",
@@ -41,10 +41,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kamil-gwozdz/opinionated-cmux-copilot-sidebar.git"
+    "url": "git+https://github.com/kamil-gwozdz/cmux-copilot-artifacts.git"
   },
   "bugs": {
-    "url": "https://github.com/kamil-gwozdz/opinionated-cmux-copilot-sidebar/issues"
+    "url": "https://github.com/kamil-gwozdz/cmux-copilot-artifacts/issues"
   },
-  "homepage": "https://github.com/kamil-gwozdz/opinionated-cmux-copilot-sidebar#readme"
+  "homepage": "https://github.com/kamil-gwozdz/cmux-copilot-artifacts#readme"
 }
