@@ -54,6 +54,25 @@ console.log("urlsToOpen (dedup logic):");
      cmux.urlsToOpen(["https://x/pull/1"], new Set(), new Set(["https://x/pull/1"]), "SessionStart").length === 0);
 }
 
+console.log("workspaceTitleFromTree (space name <- first terminal tab):");
+{
+  const tree = { windows: [{ workspaces: [
+    { id: "A", title: "Work", panes: [{ surfaces: [
+      { type: "browser", title: "some PR" },
+      { type: "terminal", title: "Implement Cmux Custom Sidebar" },
+      { type: "terminal", title: "second terminal" },
+    ] }] },
+    { id: "B", title: "B", panes: [] },
+  ] }] };
+  ok("returns the first terminal tab's title for the target workspace",
+     cmux.workspaceTitleFromTree(tree, "A") === "Implement Cmux Custom Sidebar");
+  ok("null when already in sync",
+     cmux.workspaceTitleFromTree({ windows: [{ workspaces: [
+       { id: "A", title: "T", panes: [{ surfaces: [{ type: "terminal", title: "T" }] }] }] }] }, "A") === null);
+  ok("null when the workspace has no terminal title", cmux.workspaceTitleFromTree(tree, "B") === null);
+  ok("null when the workspace is absent / no tree", cmux.workspaceTitleFromTree(tree, "Z") === null && cmux.workspaceTitleFromTree(null, "A") === null);
+}
+
 console.log("pillText:");
 {
   const states = { "https://x/pull/1": { ci: "passed" }, "https://x/pull/2": { ci: "passed" } };
