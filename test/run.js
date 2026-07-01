@@ -148,7 +148,17 @@ console.log("pillText:");
   })());
 }
 
-console.log("resolveSession:");
+console.log("pillSettled (bounds the pill poller):");
+{
+  const A = [{ kind: "pr", url: "https://x/pull/1" }];
+  ok("running CI -> not settled", cmux.pillSettled(A, { "https://x/pull/1": { state: "OPEN", ci: "running" } }) === false);
+  ok("passed CI -> settled", cmux.pillSettled(A, { "https://x/pull/1": { state: "OPEN", ci: "passed" } }) === true);
+  ok("failed CI -> settled", cmux.pillSettled(A, { "https://x/pull/1": { state: "OPEN", ci: "failed" } }) === true);
+  ok("merged PR still running -> settled", cmux.pillSettled(A, { "https://x/pull/1": { state: "MERGED", ci: "running" } }) === true);
+  ok("no state yet -> not settled", cmux.pillSettled(A, {}) === false);
+  ok("no PRs -> settled", cmux.pillSettled([], {}) === true);
+}
+
 {
   const d = path.join(HOME, ".copilot", "session-state", "abc");
   fs.mkdirSync(d, { recursive: true });

@@ -103,6 +103,7 @@ if (require.main === module) {
   switch (cmd) {
     case "hook": try { cmux.runHook(arg || "", readStdin()); } catch {} process.stdout.write("{}\n"); break;
     case "run": cmux.runHook("manual", ""); break;
+    case "pill-watch": try { cmux.watchPill(arg || process.env.CMUX_SURFACE_ID || ""); } catch {} break;
     case "install": install(); break;
     case "uninstall": uninstall(); break;
     case "doctor": doctor(); break;
