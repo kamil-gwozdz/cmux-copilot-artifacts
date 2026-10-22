@@ -127,6 +127,14 @@ console.log("sessionName (workspace.yaml):");
   ok("reads name via transcript file path", cmux.sessionName(path.join(d, "events.jsonl")) === "Fix Session Name Display");
   fs.writeFileSync(path.join(d, "workspace.yaml"), "name: 'quoted: name'\n");
   ok("unquotes yaml string", cmux.sessionName(d) === "quoted: name");
+  fs.writeFileSync(path.join(d, "workspace.yaml"), "name: 'Fix user''s login: redirect'\n");
+  ok("decodes escaped single quote", cmux.sessionName(d) === "Fix user's login: redirect");
+  fs.writeFileSync(path.join(d, "workspace.yaml"), 'name: "say \\"hi\\" \\u00e9"\n');
+  ok("decodes double-quoted escapes", cmux.sessionName(d) === 'say "hi" \u00e9');
+  fs.writeFileSync(path.join(d, "workspace.yaml"), "name: >-\n  Folded\n  name\n");
+  ok("folded block scalar -> empty (tab fallback)", cmux.sessionName(d) === "");
+  ok("plain scalar drops trailing comment", cmux.yamlScalar("Plain name # note") === "Plain name");
+  ok("plain scalar keeps inner #", cmux.yamlScalar("C# rename") === "C# rename");
   ok("missing -> empty", cmux.sessionName(path.join(HOME, "nope")) === "");
 }
 
@@ -198,9 +206,9 @@ console.log("pillSettled (bounds the pill poller):");
   fs.mkdirSync(d, { recursive: true });
   fs.writeFileSync(path.join(d, "events.jsonl"), "x");
   const r1 = cmux.resolveSession(JSON.stringify({ session_id: "abc" }));
-  ok("resolves session dir from stdin session_id", r1.sessionId === "abc" && r1.dir === d);
+  ok("resolves session dir from stdin session_id", r1.sessionId === "abc" && r1.dir === d && r1.exact === true);
   const r2 = cmux.resolveSession("");
-  ok("falls back to a session on disk", r2.dir === d);
+  ok("falls back to a session on disk (not exact)", r2.dir === d && !r2.exact);
 }
 
 console.log("opened-state round-trip:");
