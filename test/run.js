@@ -94,6 +94,48 @@ console.log("nextWorkspaceTitle (tab-follow, cmux-reset re-assert, manual wins):
   // once manual, cmux's 'Work' reset is corrected back to the manual name
   s = cmux.nextWorkspaceTitle({ cur: "Work", tab: "Sess C", base: "Work", ours: "My Name", manual: "My Name" });
   ok("manual re-asserted over cmux reset", s.rename === "My Name" && s.manual === "My Name");
+  // session name beats the status-laden tab title
+  const busy = "Investigate CI - Waiting for background agents - GitHub Copilot";
+  s = cmux.nextWorkspaceTitle({ cur: "Work", tab: busy, name: "Investigate CI", bases: ["Work"], ours: "Work", manual: null });
+  ok("session name wins over tab status", s.rename === "Investigate CI" && s.manual === null);
+  // stale bogus manual values are healed
+  s = cmux.nextWorkspaceTitle({ cur: "Work", tab: busy, name: "Investigate CI", bases: ["Work"], ours: "Work", manual: "Work" });
+  ok("manual 'Work' (cwd basename) healed", s.rename === "Investigate CI" && s.manual === null);
+  s = cmux.nextWorkspaceTitle({ cur: "Copilot", tab: busy, name: "Investigate CI", bases: ["Work"], ours: "Copilot", manual: "Copilot" });
+  ok("manual 'Copilot' healed", s.rename === "Investigate CI" && s.manual === null);
+  s = cmux.nextWorkspaceTitle({ cur: "Investigate CI", tab: busy, name: "Investigate CI", bases: ["Work"], ours: "Investigate CI", manual: "Investigate CI" });
+  ok("manual equal to session name healed", s.rename === null && s.manual === null);
+  // cmux echoing a raw tab title or an old summary is not a hand rename
+  s = cmux.nextWorkspaceTitle({ cur: busy, tab: busy, name: "Investigate CI", bases: ["Work"], ours: "Investigate CI", manual: null, seen: [] });
+  ok("raw '- GitHub Copilot' title not manual", s.rename === "Investigate CI" && s.manual === null);
+  s = cmux.nextWorkspaceTitle({ cur: "Old Summary", tab: "New - GitHub Copilot", name: "New", bases: ["Work"], ours: "New", manual: null, seen: s.seen.concat("Old Summary") });
+  ok("previously seen summary not manual", s.rename === "New" && s.manual === null);
+  // without a session name, fall back to the tab title minus the suffix
+  s = cmux.nextWorkspaceTitle({ cur: "Work", tab: "Sess Z - GitHub Copilot", bases: ["Work"] });
+  ok("fallback strips '- GitHub Copilot'", s.rename === "Sess Z");
+  // a real hand rename still sticks across name changes
+  s = cmux.nextWorkspaceTitle({ cur: "My Space", tab: busy, name: "Investigate CI", bases: ["Work"], ours: "Investigate CI", manual: null, seen: ["Investigate CI"] });
+  s = cmux.nextWorkspaceTitle({ cur: "My Space", tab: "Other - GitHub Copilot", name: "Other", bases: ["Work"], ours: s.ours, manual: s.manual, seen: s.seen });
+  ok("hand rename survives session rename", s.rename === null && s.manual === "My Space");
+}
+
+console.log("sessionName (workspace.yaml):");
+{
+  const d = fs.mkdtempSync(path.join(HOME, "sess-"));
+  fs.writeFileSync(path.join(d, "workspace.yaml"), "id: x\nname: Fix Session Name Display\nuser_named: false\n");
+  ok("reads name from session dir", cmux.sessionName(d) === "Fix Session Name Display");
+  ok("reads name via transcript file path", cmux.sessionName(path.join(d, "events.jsonl")) === "Fix Session Name Display");
+  fs.writeFileSync(path.join(d, "workspace.yaml"), "name: 'quoted: name'\n");
+  ok("unquotes yaml string", cmux.sessionName(d) === "quoted: name");
+  fs.writeFileSync(path.join(d, "workspace.yaml"), "name: 'Fix user''s login: redirect'\n");
+  ok("decodes escaped single quote", cmux.sessionName(d) === "Fix user's login: redirect");
+  fs.writeFileSync(path.join(d, "workspace.yaml"), 'name: "say \\"hi\\" \\u00e9"\n');
+  ok("decodes double-quoted escapes", cmux.sessionName(d) === 'say "hi" \u00e9');
+  fs.writeFileSync(path.join(d, "workspace.yaml"), "name: >-\n  Folded\n  name\n");
+  ok("folded block scalar -> empty (tab fallback)", cmux.sessionName(d) === "");
+  ok("plain scalar drops trailing comment", cmux.yamlScalar("Plain name # note") === "Plain name");
+  ok("plain scalar keeps inner #", cmux.yamlScalar("C# rename") === "C# rename");
+  ok("missing -> empty", cmux.sessionName(path.join(HOME, "nope")) === "");
 }
 
 console.log("pillText:");
@@ -164,9 +206,9 @@ console.log("pillSettled (bounds the pill poller):");
   fs.mkdirSync(d, { recursive: true });
   fs.writeFileSync(path.join(d, "events.jsonl"), "x");
   const r1 = cmux.resolveSession(JSON.stringify({ session_id: "abc" }));
-  ok("resolves session dir from stdin session_id", r1.sessionId === "abc" && r1.dir === d);
+  ok("resolves session dir from stdin session_id", r1.sessionId === "abc" && r1.dir === d && r1.exact === true);
   const r2 = cmux.resolveSession("");
-  ok("falls back to a session on disk", r2.dir === d);
+  ok("falls back to a session on disk (not exact)", r2.dir === d && !r2.exact);
 }
 
 console.log("opened-state round-trip:");
