@@ -37,6 +37,15 @@ console.log("classifyTabs (tab-driven tracking set):");
   ok("includes the issue, drops the non-artifact", arts.some((a) => a.kind === "issue") && arts.length === 2);
 }
 
+console.log("shouldRefocus (never steal focus from another space):");
+{
+  const id = (ref) => ({ focused: { surface_ref: ref } });
+  ok("refocuses when the user is on the agent terminal", cmux.shouldRefocus(id("surface:1"), "surface:1", ["surface:9"]));
+  ok("refocuses when the new tab grabbed focus", cmux.shouldRefocus(id("surface:9"), "surface:1", ["surface:9"]));
+  ok("leaves focus alone when the user is elsewhere", !cmux.shouldRefocus(id("surface:5"), "surface:1", ["surface:9"]));
+  ok("leaves focus alone when identify failed", !cmux.shouldRefocus(null, "surface:1", ["surface:9"]));
+}
+
 console.log("urlsToOpen (dedup logic):");
 {
   const urls = ["https://x/pull/1", "https://x/pull/2", "https://x/issues/3"];
